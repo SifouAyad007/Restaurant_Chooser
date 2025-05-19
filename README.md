@@ -33,13 +33,13 @@ Ensure you have the following installed:
 ### Installation
 
  #### 1. Clone the repository:
-   ```bash
+   
    git clone <repo-url>
    cd <repo-name>
 
 
  #### 2. Install dependencies
-```bash
+
 npm install
 # or
 yarn install
@@ -54,8 +54,6 @@ npx react-native run-ios
 🧭 Navigation
 
 This project uses a custom navigation setup with:
-
-    AppNavigator.js: Main navigation configuration
 
     navigation.js: Additional navigation logic or nested navigators
 
