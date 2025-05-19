@@ -40,6 +40,4 @@ CustomButton.defaultProps = {
   disabled: false,
 };
 
-
-
 export default CustomButton;

@@ -1,17 +1,41 @@
 import React from 'react';
-import { TextInput, Text, View, StyleSheet } from 'react-native';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
 
-const CustomTextInput = ({ label, value, onChangeText, maxLength, placeholder }) => {
+const CustomTextInput = ({ 
+  label, 
+  value, 
+  onChangeText, 
+  maxLength, 
+  placeholder, 
+  error,
+  stateHolder,
+  stateFieldName
+}) => {
+  // If stateHolder and stateFieldName are provided, use them for onChange
+  const handleChange = (text) => {
+    if (stateHolder && stateFieldName) {
+      stateHolder.handleInputChange(stateFieldName, text);
+    } else if (onChangeText) {
+      onChangeText(text);
+    }
+  };
+
   return (
     <View style={styles.inputContainer}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          error ? { borderColor: 'red' } : {}
+        ]}
         value={value}
-        onChangeText={onChangeText}
+        onChangeText={handleChange}
         maxLength={maxLength}
         placeholder={placeholder}
       />
+      {error && (
+        <Text style={styles.errorText}>{error}</Text>
+      )}
     </View>
   );
 };
@@ -23,6 +47,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 5,
   },
   input: {
     borderWidth: 1,
@@ -31,6 +56,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     height: 40,
     fontSize: 16,
+  },
+  errorText: {
+    color: 'red',
+    marginLeft: 10,
+    marginTop: 5,
+    fontSize: 14,
   },
 });
 

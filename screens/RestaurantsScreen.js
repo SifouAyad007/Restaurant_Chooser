@@ -126,20 +126,150 @@ class AddScreen extends React.Component {
   website: "",
   delivery: "",
   key: `r_${new Date().getTime()}_${Math.random()}`,
+  errors: {}
   };
 }
 
-saveRestaurant = async () => {
-  const { name, cuisine, price, rating, phone, address, website, delivery } = this.state;
-  
-  if ((!name) || (!cuisine) || (!price) || (!rating)  || (!phone)  || (!address)  || (!website) ||  (!delivery)) {
-  Alert.alert("Error", "Please fill all fields");
-  }
-  else {
+  validateName = (name) => {
+    if (!name.trim()) {
+      return "Restaurant name is required";
+    }
+    if (name.length < 2) {
+      return "Name must be at least 2 characters";
+    }
+    if (!/^[a-zA-Z0-9\s,'-]*$/.test(name)) {
+      return "Name contains invalid characters";
+    }
+    return null;
+  };
 
+  validatePhone = (phone) => {
+    if (!phone.trim()) {
+        return "Phone number is required";
+    }
+    // Supports various phone formats:
+    // - (123) 456-7890
+    // - 123-456-7890
+    // - 123.456.7890
+    // - +91 (123) 456-7890
+    // - etc.
+    const phoneRegex = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+    if (!phoneRegex.test(phone)) {
+        return "Please enter a valid phone number";
+    }
+    return null;
+};
+
+  validateAddress = (address) => {
+    if (!address.trim()) {
+        return "Address is required";
+    }
+    // Basic address validation - should contain at least a number and some text
+    if (!/\d+/.test(address) || !/[a-zA-Z]/.test(address)) {
+        return "Please enter a valid address (should include street number and name)";
+    }
+    if (address.length < 5) {
+        return "Address is too short";
+    }
+    return null;
+};
+
+  validateWebsite = (website) => {
+    if (!website.trim()) {
+        return "Website is required";
+    }
     try {
+        // Enhanced URL validation that handles:
+        // - http://example.com
+        // - https://example.com
+        // - www.example.com
+        // - example.com
+        // - subdomain.example.com
+        // - paths (example.com/path)
+        // - queries (example.com?query=param)
+        // - ports (example.com:8080)
+        const urlRegex = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/\S*)?(\?\S*)?(:\d+)?$/;
+        
+        // Test basic URL structure
+        if (!urlRegex.test(website)) {
+            return "Please enter a valid website URL (e.g., example.com or https://example.com)";
+        }
+        
+        // If URL doesn't start with http/https, check if it's valid without it
+        if (!website.startsWith('http://') && !website.startsWith('https://')) {
+            // Test again with http:// prefixed to validate the domain
+            if (!urlRegex.test(`http://${website}`)) {
+                return "Please enter a valid website domain";
+            }
+        }
+        
+        // Additional security check for special characters
+        if (/[<>"'{}|\\^~[\]`]/.test(website)) {
+            return "URL contains invalid characters";
+        }
+        
+    } catch (e) {
+        return "Please enter a valid website URL";
+    }
     
+    return null;
+};
 
+  handleInputChange = (field, value) => {
+    // Clear any existing error for this field when user types
+    this.setState(prevState => ({
+        [field]: value,
+        errors: {
+            ...prevState.errors,
+            [field]: null
+        }
+    }));
+};
+
+  validateAllFields = () => {
+    const { name, phone, address, website, cuisine, price, rating, delivery } = this.state;
+    const errors = {
+        name: this.validateName(name),
+        phone: this.validatePhone(phone),
+        address: this.validateAddress(address),
+        website: this.validateWebsite(website),
+        cuisine: !cuisine ? "Cuisine is required" : null,
+        price: !price ? "Price is required" : null,
+        rating: !rating ? "Rating is required" : null,
+        delivery: !delivery ? "Please specify delivery option" : null
+    };
+
+    this.setState({ errors });
+    return !Object.values(errors).some(error => error !== null);
+};
+
+
+saveRestaurant = async () => {
+  
+
+  const isValid = this.validateAllFields();
+  
+  if (!isValid) {
+    // Now we can safely access this.state.errors
+    const { errors } = this.state;
+    
+    // Find the first error field
+    const firstErrorField = Object.keys(errors).find(key => errors[key]);
+    
+    if (firstErrorField) {
+      Toast.show({
+        type: 'error',
+        position: 'bottom',
+        text1: 'Validation Error',
+        text2: errors[firstErrorField],
+        visibilityTime: 3000,
+      });
+    }
+    return;
+  }
+    try {
+      
+      
       // Get the existing restaurants list from AsyncStorage
       const restaurants = await AsyncStorage.getItem("restaurants");
 
@@ -168,13 +298,12 @@ saveRestaurant = async () => {
       Toast.show({
         type: "error",
         position: "bottom",
-        text1: "Failed to save restaurant!",
+        text1: "Failed to save restaurant! Try Again",
         visibilityTime: 2000,
       });
     }
   }
-  }
-render() {
+render() { 
   return (
       <ScrollView style={styles.addScreenContainer}>
           <View style={styles.addScreenInnerContainer}>
@@ -184,107 +313,144 @@ render() {
                       maxLength={20}
                       stateHolder={this}
                       stateFieldName="name"
-                      onChangeText={(text) => this.setState({ name: text })} 
-                      value={this.state.name}
+                      onChangeText={(text) => this.handleInputChange('name' , text)}
+                      error = {this.state.errors.name}
                   />
                   <Text style={styles.fieldLabel}>Cuisine</Text>
-                  <View style={styles.pickerContainer}>
+                  <View style={[
+                               styles.pickerContainer , 
+                               this.state.errors.cuisine ? { borderColor: red} : {}
+                  ]}>
                       <Picker
                           style={styles.picker}
                           selectedValue={this.state.cuisine}
-                          onValueChange={(itemValue) => this.setState({ cuisine: itemValue })}
+                          onValueChange={(itemValue) => this.handleInputChange('cuisine', itemValue)}
                       >
                   <Picker.Item label="" value="" />
                   <Picker.Item label="Algerian" value="Algerian" />
                   <Picker.Item label="American" value="American" />
                   <Picker.Item label="Other" value="Other" />
 
-                  </Picker>
+                   </Picker>
                   </View>
+
+                  {this.state.errors.cuisine && (
+                  <Text style={{ color: 'red', marginLeft: 10, marginBottom: 10 }}>
+                      {this.state.errors.cuisine}
+                  </Text>
+              )}
+                  
+                  
                   <Text style={styles.fieldLabel}>Price</Text>
-<View style={styles.pickerContainer}>
-    <Picker
-        style={styles.picker}
-        selectedValue={this.state.price}
-        onValueChange={(itemValue) => this.setState({ price: itemValue })}>
-        <Picker.Item label="" value="" />
-        <Picker.Item label="$1" value="1" />
-        <Picker.Item label="$2" value="2" />
-        <Picker.Item label="$3" value="3" />
-        <Picker.Item label="$4" value="4" />
-        <Picker.Item label="$5" value="5" />
-    </Picker>
-</View>
+                  <View style={[
+                                  styles.pickerContainer ,
+                                  this.state.errors.price ? {borderColor : 'red' } : {}  
 
-<Text style={styles.fieldLabel}>Rating</Text>
-<View style={styles.pickerContainer}>
-    <Picker
-        style={styles.picker}
-        selectedValue={this.state.rating}
-        onValueChange={(itemValue) => this.setState({ rating: itemValue })}>
-        <Picker.Item label="" value="" />
-        <Picker.Item label="★" value="1" />
-        <Picker.Item label="★★" value="2" />
-        <Picker.Item label="★★★" value="3" />
-        <Picker.Item label="★★★★" value="4" />
-        <Picker.Item label="★★★★★" value="5" />
-    </Picker>
-</View>
-<CustomTextInput
-label="Phone Number"
-maxLength={20}
-stateHolder={this}
-stateFieldName="phone"
-onChangeText={(text) => this.setState({ phone: text })} 
-value={this.state.phone} 
-/>
-<CustomTextInput
-label="Address"
-maxLength={20}
-stateHolder={this}
-stateFieldName="address"
-onChangeText={(text) => this.setState({ address: text })}
-value={this.state.address}
-/>
-<CustomTextInput
-label="Web Site"
-maxLength={20}
-stateHolder={this}
-stateFieldName="webSite"
-onChangeText={(text) => this.setState({ website: text })}
-value={this.state.website}
-/>
-<Text style={styles.fieldLabel}>Delivery?</Text>
-<View style={styles.pickerContainer}>  
-    <Picker  
-    style={styles.picker}  
-    selectedValue={this.state.delivery}  
-    onValueChange={(itemValue) => this.setState({ delivery: itemValue })}  
-    >  
-    <Picker.Item label="" value="" />  
-    <Picker.Item label="Yes" value="Yes" />  
-    <Picker.Item label="No" value="No" />  
-    </Picker>  
-</View>  
-</View>  
+                  ]}>
 
-<View style={styles.addScreenButtonsContainer}>  
-    <CustomButton  
-    text="Cancel"  
-    width="44%"  
-    onPress={() => this.props.navigation.navigate("ListScreen")}  
-    />  
-    <CustomButton  
-    text="Save"  
-    width="44%"  
-    onPress={this.saveRestaurant}  
-    />  
-    </View>  
-</View>  
-</ScrollView>  
-  );
-}
-}
+                      <Picker
+                          style={styles.picker}
+                          selectedValue={this.state.price}
+                          onValueChange={(itemValue) => this.handleInputChange( 'price' , itemValue )}>
+
+                          <Picker.Item label=" Select Price Range" value="" />
+                          <Picker.Item label="$1" value="1" />
+                          <Picker.Item label="$2" value="2" />
+                          <Picker.Item label="$3" value="3" />
+                          <Picker.Item label="$4" value="4" />
+                          <Picker.Item label="$5" value="5" />
+                      </Picker>
+                  </View>
+
+                  {this.state.errors.price && (
+                  <Text style={{ color: 'red', marginLeft: 10, marginBottom: 10 }}>
+                               {this.state.errors.price}
+                  </Text>
+                  )}
+
+                  <Text style={styles.fieldLabel}>Rating</Text>
+                  <View style={[styles.pickerContainer , 
+                               this.state.errors.rating ? { borderColor: 'red' } : {} 
+                  ]}>
+                      <Picker
+                          style={styles.picker}
+                          selectedValue={this.state.rating}
+                          onValueChange={(itemValue) => this.handleInputChange('rating', itemValue)}>
+                          <Picker.Item label="Select a rating..." value="" />
+                          <Picker.Item label="★" value="1" />
+                          <Picker.Item label="★★" value="2" />
+                          <Picker.Item label="★★★" value="3" />
+                          <Picker.Item label="★★★★" value="4" />
+                          <Picker.Item label="★★★★★" value="5" />
+                      </Picker>
+                  </View>
+                  
+                  {this.state.errors.rating && (
+                  <Text style={{ color: 'red', marginLeft: 10, marginBottom: 10 }}>
+                 {errors.rating}
+                  </Text> )}
+
+
+                   <CustomTextInput
+                  label="Phone Number"
+                  maxLength={20}
+                  stateHolder={this}
+                  stateFieldName="phone"
+                  onChangeText={(text) => this.handleInputChange('phone', text)}
+                  KeyboardType="phone-pad"
+                  error = {this.state.errors.phone}
+                  />
+
+                  <CustomTextInput
+                  label="Address"
+                  maxLength={100}
+                  stateHolder={this}
+                  stateFieldName="address"
+                  onChangeText={(text) => this.handleInputChange('address', text)}
+                  error = {this.state.errors.address}
+                  />
+                  <CustomTextInput
+                  label="Web Site"
+                  maxLength={100}
+                  stateHolder={this}
+                  stateFieldName="website"
+                  onChangeText={(text) => this.handleInputChange('website', text)}
+                  KeyboardType = "url"
+                  autoCapitalize = "none"
+                  error = { this.state.errors.website }
+                  />
+
+                  <Text style={styles.fieldLabel}>Delivery?</Text>
+                  <View style={styles.pickerContainer}>  
+                      <Picker  
+                      style={styles.picker}  
+                      selectedValue={this.state.delivery}  
+                      onValueChange={(itemValue) => this.setState({ delivery: itemValue })}  
+                      >  
+                      <Picker.Item label="" value="" />  
+                      <Picker.Item label="Yes" value="Yes" />  
+                      <Picker.Item label="No" value="No" />  
+                      </Picker>  
+                  </View>  
+                  </View>  
+
+                  <View style={styles.addScreenButtonsContainer}>  
+                      <CustomButton  
+                      text="Cancel"  
+                      width="44%"  
+                      onPress={() => this.props.navigation.navigate("ListScreen")}  
+                      />  
+                      <CustomButton  
+                      text="Save"  
+                      width="44%"  
+                      onPress={this.saveRestaurant}  
+                      />  
+                      </View>  
+                  </View>  
+                  </ScrollView>  
+                    );
+                  }
+                  }
 
 const Stack = createStackNavigator();
 

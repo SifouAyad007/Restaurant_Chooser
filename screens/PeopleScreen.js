@@ -111,6 +111,8 @@ class PeopleScreen extends React.Component {
   }
 }
 
+
+
 class AddPersonScreen extends React.Component {
   constructor(inProps) {
     super(inProps);
@@ -119,8 +121,10 @@ class AddPersonScreen extends React.Component {
       lastName: "",
       relationship: "",
       key: `p_${new Date().getTime()}_${Math.random()}`,
+      errors: {} ,
     };
   }
+
 
   savePerson = async () => {
     const { firstName, lastName, relationship } = this.state;
@@ -129,7 +133,7 @@ class AddPersonScreen extends React.Component {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
-
+    
     try {
       const people = await AsyncStorage.getItem("people");
       const peopleList = people ? JSON.parse(people) : [];
@@ -139,6 +143,7 @@ class AddPersonScreen extends React.Component {
         lastName,
         relationship,
         key: this.state.key,
+        
       };
 
       peopleList.push(newPerson);

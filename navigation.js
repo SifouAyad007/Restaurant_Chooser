@@ -67,19 +67,7 @@ export const Navigation = () => {
     ),
   }}
 />
-<Tab.Screen
-  name="homeScreen"
-  component={homeScreen}
-  options={{
-    tabBarLabel: "Home",
-    tabBarIcon: ({ color }) => (
-      <Image
-        source={require("./assets/icon-home.png")}
-        style={{ width: 32, height: 32, tintColor: color }}
-      />
-    ),
-  }}
-/>
+
 </Tab.Navigator>
     );
 };
