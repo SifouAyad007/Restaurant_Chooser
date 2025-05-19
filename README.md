@@ -32,17 +32,19 @@ Ensure you have the following installed:
 
 ### Installation
 
-## 1. Clone the repository:
+ #### 1. Clone the repository:
    ```bash
    git clone <repo-url>
    cd <repo-name>
-## 2. Install dependencies
 
+
+ #### 2. Install dependencies
+```bash
 npm install
 # or
 yarn install
 
-## 3. Run the app
+ #### 3. Run the app
 
 npx react-native run-android
 # or for iOS
